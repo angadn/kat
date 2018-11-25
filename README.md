@@ -13,7 +13,7 @@ if config, err = rest.InClusterConfig(); err != nil {
 }
 
 if session, err = kat.New(
-    config, "dcr.repo.io/image:label",
+    config, kat.Image("dcr.repo.io/image:label"),
 ); err != nil {
     log.Fatalln(err.Error())
 }
