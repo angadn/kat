@@ -148,3 +148,7 @@ func (session *Session) Attach(
 
 	return
 }
+
+func (session *Session) Stop() (err error) {
+	// TODO: Implement me
+}
