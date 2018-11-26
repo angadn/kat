@@ -35,7 +35,8 @@ type Session struct {
 	pod *v1.Pod
 }
 
-func New(config *rest.Config, img Image) (session Session, err error) {
+func New(config *rest.Config, img Image) (session *Session, err error) {
+	session = new(Session)
 	session.config = config
 
 	if session.clientset, err = kubernetes.NewForConfig(config); err != nil {
@@ -116,8 +117,16 @@ func (session *Session) Start() (err error) {
 func (session *Session) Attach(
 	stdin io.Reader, stdout, stderr io.Writer,
 ) (err error) {
-	var req *rest.Request
-	req = session.clientset.RESTClient().Post().
+	var (
+		client *rest.RESTClient
+		req    *rest.Request
+	)
+
+	if client, err = rest.RESTClientFor(session.config); err != nil {
+		return
+	}
+
+	req = client.Post().
 		Resource("pods").
 		Name(session.pod.Name).
 		Namespace(string(session.NS)).
