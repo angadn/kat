@@ -151,4 +151,5 @@ func (session *Session) Attach(
 
 func (session *Session) Stop() (err error) {
 	// TODO: Implement me
+	return
 }
