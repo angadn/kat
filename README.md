@@ -31,4 +31,9 @@ sout, serr = bytes.NewBuffer(make([]byte, 32768)), bytes.NewBuffer(make([]byte, 
 if err = session.Attach(data, sout, serr); err != nil {
     log.Fatalln(err.Error())
 }
+
+// After we're done, don't forget to clean up
+if err = session.Stop(); err != nil {
+    log.Fatalln(err.Error())
+}
 ```
