@@ -150,6 +150,8 @@ func (session *Session) Attach(
 }
 
 func (session *Session) Stop() (err error) {
-	// TODO: Implement me
+	err = session.clientset.CoreV1().Pods(string(session.NS)).Delete(
+		session.pod.Name, &metav1.DeleteOptions{},
+	)
 	return
 }

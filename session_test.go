@@ -53,4 +53,9 @@ func TestFoo(t *testing.T) {
 
 	log.Printf("Output: %s\n", stdout.String())
 	log.Printf("Errors: %s\n", stderr.String())
+
+	log.Printf("deleting pod %s\n", session.pod.Name)
+	if err = session.Stop(); err != nil {
+		log.Fatalf("error deleting pod: %s\n", err.Error())
+	}
 }
