@@ -48,7 +48,7 @@ func New(config *rest.Config, img Image) (session Session, err error) {
 	return
 }
 
-func (session Session) Start() (err error) {
+func (session *Session) Start() (err error) {
 	podName := uuid.New().String()
 
 	var env []v1.EnvVar
@@ -113,28 +113,19 @@ func (session Session) Start() (err error) {
 	return
 }
 
-func (session Session) Attach(
+func (session *Session) Attach(
 	stdin io.Reader, stdout, stderr io.Writer,
 ) (err error) {
-	var (
-		client *rest.RESTClient
-		req    *rest.Request
-	)
-
-	if client, err = rest.RESTClientFor(session.config); err != nil {
-		return
-	}
-
-	req = client.Post().
+	var req *rest.Request
+	req = session.clientset.RESTClient().Post().
 		Resource("pods").
 		Name(session.pod.Name).
 		Namespace(string(session.NS)).
-		SubResource("attach")
-
-	req.VersionedParams(&v1.PodAttachOptions{
-		Container: string(defaultContainer),
-		Stdin:     true,
-	}, scheme.ParameterCodec)
+		SubResource("attach").
+		VersionedParams(&v1.PodAttachOptions{
+			Container: string(defaultContainer),
+			Stdin:     true,
+		}, scheme.ParameterCodec)
 
 	var exec remotecommand.Executor
 	if exec, err = remotecommand.NewSPDYExecutor(
