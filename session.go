@@ -78,6 +78,7 @@ func (session Session) Start() (err error) {
 						Name:            string(defaultContainer),
 						Image:           string(session.img),
 						ImagePullPolicy: session.PullPolicy,
+						Stdin:           true,
 						Env:             env,
 					},
 				},
@@ -103,7 +104,7 @@ func (session Session) Start() (err error) {
 			err = fmt.Errorf("failed to connect to pod %s", session.pod.Name)
 			return
 		case v1.PodSucceeded:
-			break
+			return
 		default:
 			// Do nothing
 		}
