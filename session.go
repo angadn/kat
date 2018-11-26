@@ -3,6 +3,9 @@ package kat
 import (
 	"fmt"
 	"io"
+	"log"
+
+	"k8s.io/apimachinery/pkg/runtime/schema"
 
 	"k8s.io/client-go/kubernetes/scheme"
 
@@ -80,6 +83,7 @@ func (session *Session) Start() (err error) {
 						Image:           string(session.img),
 						ImagePullPolicy: session.PullPolicy,
 						Stdin:           true,
+						TTY:             true,
 						Env:             env,
 					},
 				},
@@ -104,7 +108,7 @@ func (session *Session) Start() (err error) {
 		case v1.PodUnknown:
 			err = fmt.Errorf("failed to connect to pod %s", session.pod.Name)
 			return
-		case v1.PodSucceeded:
+		case v1.PodRunning, v1.PodSucceeded:
 			return
 		default:
 			// Do nothing
@@ -122,10 +126,22 @@ func (session *Session) Attach(
 		req    *rest.Request
 	)
 
+	// Setup GroupVersion and NegotiatedSerializer, without which RESTClientFor panics
+	session.config.GroupVersion = &schema.GroupVersion{}
+	if *session.config.GroupVersion, err = schema.ParseGroupVersion(
+		"v1",
+	); err != nil {
+		log.Fatalf("error parsing group version: %s\n", err.Error())
+	}
+
+	session.config.NegotiatedSerializer = scheme.Codecs
+
+	// Make RESTClient
 	if client, err = rest.RESTClientFor(session.config); err != nil {
 		return
 	}
 
+	// Perform request
 	req = client.Post().
 		Resource("pods").
 		Name(session.pod.Name).
@@ -134,6 +150,9 @@ func (session *Session) Attach(
 		VersionedParams(&v1.PodAttachOptions{
 			Container: string(defaultContainer),
 			Stdin:     true,
+			Stdout:    true,
+			Stderr:    true,
+			TTY:       true,
 		}, scheme.ParameterCodec)
 
 	var exec remotecommand.Executor
@@ -143,10 +162,22 @@ func (session *Session) Attach(
 		return
 	}
 
+	log.Println(req.URL().String())
+
+	/*
+		XXX: returns error = "unable to upgrade connection: you must specify at least 1 of stdin, stdout, stderr" as req.URL() is missing stdin=true&stdout=true, etc. for `api/v1`. When GroupVersion is modified go `v1`, we see the params and an empty error.
+
+		References:
+		* https://docs.okd.io/latest/go_client/executing_remote_processes.html
+		* https://github.com/a4abhishek/Client-Go-Examples/blob/master/exec_to_pod/exec_to_pod.go
+		* https://github.com/kubernetes/kubernetes/blob/v1.6.1/test/e2e/framework/exec_util.go
+
+	*/
 	err = exec.Stream(remotecommand.StreamOptions{
 		Stdin:  stdin,
 		Stdout: stdout,
 		Stderr: stderr,
+		Tty:    true,
 	})
 
 	return
