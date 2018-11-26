@@ -19,8 +19,6 @@ type container string
 
 const (
 	defaultContainer = container("kat")
-
-	bufSize = 32768
 )
 
 type Session struct {
