@@ -78,7 +78,8 @@ func (session *Session) Start() (err error) {
 						Image:           string(session.img),
 						ImagePullPolicy: session.PullPolicy,
 						Stdin:           true,
-						TTY:             true,
+						StdinOnce:       true,
+						TTY:             false,
 						Env:             env,
 					},
 				},
@@ -127,7 +128,7 @@ func (session *Session) Attach(
 			Stdin:     true,
 			Stdout:    true,
 			Stderr:    true,
-			TTY:       true,
+			TTY:       false,
 		}, scheme.ParameterCodec)
 
 	var exec remotecommand.Executor
@@ -141,7 +142,7 @@ func (session *Session) Attach(
 		Stdin:  stdin,
 		Stdout: stdout,
 		Stderr: stderr,
-		Tty:    true,
+		Tty:    false,
 	})
 
 	return
