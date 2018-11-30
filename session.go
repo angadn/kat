@@ -21,6 +21,10 @@ const (
 	defaultContainer = container("kat")
 )
 
+var (
+	ErrPodFailed = fmt.Errorf("pod failed")
+)
+
 type Session struct {
 	config    *rest.Config
 	clientset *kubernetes.Clientset
@@ -88,11 +92,7 @@ func (session *Session) Start() (err error) {
 		})
 
 	var watch watch.Interface
-	if watch, err = session.clientset.CoreV1().Pods(
-		string(session.NS),
-	).Watch(metav1.ListOptions{
-		LabelSelector: session.pod.Name,
-	}); err != nil {
+	if watch, err = session.watch(); err != nil {
 		return
 	}
 
@@ -143,6 +143,46 @@ func (session *Session) Attach(
 		Stdout: stdout,
 		Stderr: stderr,
 		Tty:    false,
+	})
+
+	return
+}
+
+func (session *Session) Wait() (err <-chan error) {
+	ret := make(chan error, 1)
+	go func() {
+		var (
+			e     error
+			watch watch.Interface
+		)
+
+		if watch, e = session.watch(); e != nil {
+			ret <- e
+		}
+
+		for event := range watch.ResultChan() {
+			switch event.Object.(*v1.Pod).Status.Phase {
+			case v1.PodFailed, v1.PodUnknown:
+				ret <- ErrPodFailed
+				return
+			case v1.PodSucceeded:
+				ret <- nil
+				return
+			default:
+				// Do nothing
+			}
+		}
+	}()
+
+	err = ret
+	return
+}
+
+func (session *Session) watch() (watch watch.Interface, err error) {
+	watch, err = session.clientset.CoreV1().Pods(
+		string(session.NS),
+	).Watch(metav1.ListOptions{
+		LabelSelector: session.pod.Name,
 	})
 
 	return

@@ -51,6 +51,11 @@ func TestFoo(t *testing.T) {
 		log.Fatalf("error attaching to pod %s: %s\n", session.pod.Name, err.Error())
 	}
 
+	log.Printf("Waiting for completion...\n")
+	if err := <-session.Wait(); err != nil {
+		log.Fatalf("error: %s\n", err)
+	}
+
 	log.Printf("Output: %s\n", stdout.String())
 	log.Printf("Errors: %s\n", stderr.String())
 
